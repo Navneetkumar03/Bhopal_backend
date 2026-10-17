@@ -16,9 +16,9 @@ class PdfReportService:
         map_image_data_url: str,
         title: str = "Bhopal Development Plan - 2047 (Draft)",
         subtitle: str = "Objections & Suggestions on the Draft Development Plan",
-        selectedVillage:str = "All Tehsil",
-        selectedTehsil:str = "All Village",
-        selectedKhasra:str = "",
+        selectedVillage: str = "",
+        selectedKhasra: str = "",
+        map_scale: float = None, # <--- ADD THIS
     ) -> str:
         """
         Generate the PDF asynchronously and return its file path.
@@ -35,9 +35,9 @@ class PdfReportService:
                 map_image=map_image_data_url,
                 report_title=title,
                 report_subtitle=subtitle,
-                village= selectedVillage,
-                tehsil=selectedTehsil,
+                village=selectedVillage,
                 khasra=selectedKhasra,
+                map_scale=map_scale,
             )
             logger.info("[PdfReportService] HTML rendered at %s", html_path)
         except Exception as exc:

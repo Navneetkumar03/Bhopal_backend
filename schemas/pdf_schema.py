@@ -1,34 +1,37 @@
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class MarkerItem(BaseModel):
+    # Allow extra fields like 'geom' and 'remark' to be ignored instead of causing a 422
+    model_config = ConfigDict(extra="ignore")
+
     id: str
-    objection_id: str
-    category: str
-    title: Optional[str] = ""
-    status: Optional[str] = ""
-    tehsil: Optional[str] = ""
+    objection_id: Optional[str] = ""
+    object_type: Optional[str] = ""
+    
+    # Location
     village: Optional[str] = ""
     khasra_no: Optional[str] = ""
-    date: Optional[str] = ""
-    description: Optional[str] = ""
-    applicant_name: Optional[str] = None
-    mobile: Optional[str] = None
-    lat: Optional[float] = None
-    lng: Optional[float] = None
-
+    
+    # Classification & Grouping
+    vargikaran: Optional[str] = ""
+    upvargikar: Optional[str] = ""
+    apatti_gro: Optional[str] = ""
+    
+    # Cadastral Details
+    area: Optional[float] = None
+    bhucode: Optional[str] = ""
+    code: Optional[str] = ""
+    gov_kh: Optional[str] = ""
 
 class PdfReportRequest(BaseModel):
-    title: str = Field(default="Bhopal Development Plan - 2047 (Draft)")
-    subtitle: str = Field(
-        default="Objections & Suggestions on the Draft Development Plan"
-    )
-    map_image: str = Field(
-        ...,
-        description="Base64 data URL of the map screenshot (data:image/...;base64,...)"
-    )
+    model_config = ConfigDict(extra="ignore")
+
+    title: str = "Bhopal Development Plan - 2047 (Draft)"
+    subtitle: str = "Objections & Suggestions on the Draft Development Plan"
+    map_image: str
     markers: List[MarkerItem]
-    selectedTehsil: str = Field(default="All Tehsil")
-    selectedVillage: str = Field(default="All Village")
-    selectedKhasra: str = Field(default="")
+    selectedVillage: Optional[str] = ""
+    selectedKhasra: Optional[str] = ""
+    map_scale: Optional[float] = None  # <--- ADD THIS

@@ -125,11 +125,10 @@
     }
 
     .cover-map {
-      flex: 1;
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      overflow: hidden;
+      width: 100%;
     }
 
     .cover-map img {
@@ -367,13 +366,6 @@
     {# ---- Filter meta bar (only rendered if any filter is set) ---- #}
     {% if tehsil or village or khasra %}
     <div class="cover-meta">
-      {% if tehsil %}
-      <div class="cover-meta-item">
-        <span class="cover-meta-label">Tehsil:</span>
-        <span class="cover-meta-value">{{ tehsil }}</span>
-      </div>
-      {% endif %}
-
       {% if village %}
       <div class="cover-meta-item">
         <span class="cover-meta-label">Village:</span>
@@ -391,7 +383,31 @@
     {% endif %}
 
     <div class="cover-map">
-      <img src="{{ map_image }}" alt="Map" />
+      <div style="position: relative; display: inline-block; max-width: 100%;">
+        <img src="{{ map_image }}" alt="Map"
+          style="display: block; width: 100%; max-height: 225mm; object-fit: contain; border-radius: 4pt; border: 1pt solid #e2e8f0;" />
+        <!-- Scale Badge -->
+        {% if map_scale %}
+        <div style="
+        position: absolute;
+        bottom: 16px;
+        left: 16px; /* <--- Fix this */
+        background-color: #ffffff;
+        padding: 6px 12px;
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        font-family: 'Arial', sans-serif;
+        font-size: 9pt;
+        font-weight: 400;
+        color: #1e293b;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 10; /* Ensure it's on top */
+      ">
+          1 : {{ map_scale | int }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
     </div>
   </section>
 
@@ -404,18 +420,14 @@
       <article class="marker-card">
         <header class="marker-header">
           <span class="marker-dot"
-            style="background-color: {{ category_colors.get(marker.category, '#6b7280') }};"></span>
+            style="background-color: {{ category_colors.get(marker.object_type, '#6b7280') }};"></span>
           <span class="marker-index">{{ loop.index }}</span>
-          <span class="marker-objection-id">{{ marker.objection_id }}</span>
-          <span class="marker-category">{{ marker.category }}</span>
+          <span class="marker-objection-id">Apatti No: {{ marker.objection_id or '—' }}</span>
+          <span class="marker-category">{{ marker.object_type }}</span>
         </header>
 
         <table class="marker-fields">
           <tbody>
-            <tr>
-              <td class="field-label">Tehsil</td>
-              <td class="field-value">{{ marker.tehsil or '—' }}</td>
-            </tr>
             <tr>
               <td class="field-label">Village</td>
               <td class="field-value">{{ marker.village or '—' }}</td>
@@ -425,34 +437,41 @@
               <td class="field-value">{{ marker.khasra_no or '—' }}</td>
             </tr>
             <tr>
-              <td class="field-label">Status</td>
-              <td class="field-value">{{ marker.status or '—' }}</td>
+              <td class="field-label">Area</td>
+              <td class="field-value">{{ "%.4f"|format(marker.area) if marker.area else '—' }} </td>
             </tr>
             <tr>
-              <td class="field-label">Date</td>
-              <td class="field-value">{{ marker.date or '—' }}</td>
+              <td class="field-label">Vargikaran</td>
+              <td class="field-value">{{ marker.vargikaran or '—' }}</td>
             </tr>
-            {% if marker.applicant_name %}
             <tr>
-              <td class="field-label">Applicant</td>
-              <td class="field-value">{{ marker.applicant_name }}</td>
+              <td class="field-label">Upvargikaran</td>
+              <td class="field-value">{{ marker.upvargikar or '—' }}</td>
             </tr>
-            {% endif %}
-            {% if marker.mobile %}
-            <tr>
-              <td class="field-label">Mobile</td>
-              <td class="field-value">{{ marker.mobile }}</td>
-            </tr>
-            {% endif %}
+            {% if marker.apatti_gro and marker.apatti_gro != '<Null>' %}
+              <tr>
+                <td class="field-label">Apatti Group</td>
+                <td class="field-value">{{ marker.apatti_gro }}</td>
+              </tr>
+              {% endif %}
+              <tr>
+                <td class="field-label">Bhu Code</td>
+                <td class="field-value">{{ marker.bhucode or '—' }}</td>
+              </tr>
+              {% if marker.code %}
+              <tr>
+                <td class="field-label">Code</td>
+                <td class="field-value">{{ marker.code }}</td>
+              </tr>
+              {% endif %}
+              {% if marker.gov_kh %}
+              <tr>
+                <td class="field-label">Gov. Khasra</td>
+                <td class="field-value">{{ marker.gov_kh }}</td>
+              </tr>
+              {% endif %}
           </tbody>
         </table>
-
-        <section class="marker-description">
-          <div class="desc-label">Description</div>
-          <div class="desc-content">
-            {{ marker.description_html | safe }}
-          </div>
-        </section>
       </article>
       {% endfor %}
     </div>

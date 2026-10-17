@@ -151,13 +151,12 @@ def build(
     map_image: str,
     report_title: str,
     report_subtitle: str,
-    tehsil:str,
-    village:str,
-    khasra:str,
+    village: str,
+    khasra: str,
+    map_scale: float = None, # <--- ADD THIS
 ) -> str:
     """
     Renders the report HTML and returns the absolute path to the saved file.
-    Signature is intentionally close to your existing `render_html.build()`.
     """
     env = Environment(
         loader=FileSystemLoader(TEMPLATE_DIR),
@@ -165,16 +164,11 @@ def build(
         trim_blocks=True,
         lstrip_blocks=True,
     )
-    template = env.get_template("bhopal_report.html") #D:\RAS-7277\Bhopal\Bhopal_backend\utils\templates\bhopal_report.html
+    template = env.get_template("bhopal_report.html")
 
-    # Enrich each marker with its formatted description HTML
-    enriched = []
-    for m in markers:
-        enriched.append({
-            **m,
-            "description_html": description_to_html(m.get("description") or ""),
-        })
-
+    # No longer enriching with description_html since description is gone.
+    # We just pass the markers straight through.
+    
     # Normalize map image into a data URI
     map_image_uri = _to_data_uri(map_image)
 
@@ -183,12 +177,12 @@ def build(
         report_subtitle=report_subtitle,
         exported_on=datetime.now().strftime("%d %b %Y"),
         map_image=map_image_uri,
-        markers=enriched,
+        markers=markers, # passed directly
         category_colors=CATEGORY_COLORS,
         fonts_dir=FONTS_DIR.replace("\\", "/"),
-        tehsil=tehsil,
-        village= village,
+        village=village,
         khasra=khasra,
+        map_scale=map_scale,
     )
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)

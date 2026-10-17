@@ -22,9 +22,9 @@ async def generate_pdf_report(
             map_image_data_url=payload.map_image,
             title=payload.title,
             subtitle=payload.subtitle,
-            selectedTehsil=payload.selectedTehsil,
             selectedVillage=payload.selectedVillage,
             selectedKhasra=payload.selectedKhasra,
+            map_scale=payload.map_scale, # <--- ADD THIS
         )
     except RuntimeError as exc:
         raise HTTPException(status_code=500, detail=str(exc))
