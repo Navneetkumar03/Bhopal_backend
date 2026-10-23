@@ -7,7 +7,7 @@ from database.db import engine
 
 GET_USER = text("""
     SELECT id, username, name, password, email, mobile, is_active,
-           access_token, token_expiry
+           access_token, token_expiry,role
     FROM "data".user_auth
     WHERE username = :username
 """)
@@ -26,6 +26,7 @@ def authenticate_user(username: str, password: str) -> dict | None:
     """Return user dict if username/password are correct, else None."""
     with engine.connect() as conn:
         user = conn.execute(GET_USER, {"username": username}).mappings().first()
+        
 
     if not user:
         return None

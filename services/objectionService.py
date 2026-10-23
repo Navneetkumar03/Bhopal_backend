@@ -7,35 +7,38 @@ from database.db import engine
 
 
 
-QUERY = text(f"""
+QUERY = text("""
     SELECT
         id,
         objection_id,
-        name,
-        mobile,
-        latitude,
-        longitude,
-        obj_type,
-        status,
+        code,
+        area,
+        bhucode,
         village,
-        tehsil,
         khasra_no,
-        description,
-        date,
-        document_link
-    FROM "data".objection
+        gov_kh,
+        obj_type,
+        apatti_gro,
+        remark,
+        vargikaran,
+        upvargikar,
+        geom
+    FROM "data".objection1
     ORDER BY id
 """)
 
 
 def get_all_objection_data() -> dict:
-    with engine.connect() as conn:
-        rows = conn.execute(QUERY).mappings().all()
+    try:
+        with engine.connect() as conn:
+            rows = conn.execute(QUERY).mappings().all()
 
-    data = jsonable_encoder([dict(r) for r in rows])
+        data = jsonable_encoder([dict(r) for r in rows])
 
-    return {
-        "status": "success",
-        "count": len(data),
-        "data": data,
-    }
+        return {
+            "status": "success",
+            "count": len(data),
+            "data": data,
+        }
+    except Exception as e:
+        print("Error :",e)

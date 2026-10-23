@@ -15,9 +15,6 @@ class LoginRequest(BaseModel):
     password: str
 
 
-
-
-
 @router.post("/login")
 async def login(body: LoginRequest):
     user = authenticate_user(body.username, body.password)
@@ -37,11 +34,12 @@ async def login(body: LoginRequest):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
                             detail="user_logged_in_another_device")
 
-    access_token, access_expiry = create_access_token(user["username"])
-    refresh_token, _ = create_refresh_token(user["username"])
+    access_token, access_expiry = create_access_token(user["username"], user["role"])
+    refresh_token, _ = create_refresh_token(user["username"], user["role"])
     token_expiry = to_ist(access_expiry)
 
     save_session(user["id"], access_token, refresh_token, token_expiry, now)
+  
 
     return {
         "status": "success",
@@ -50,11 +48,8 @@ async def login(body: LoginRequest):
         "token_type": "bearer",
         "token_expiry": token_expiry,
         "user": {"id": user["id"], "username": user["username"], "name": user["name"],
-                 "email": user["email"], "mobile": user["mobile"]},
+                 "email": user["email"], "mobile": user["mobile"], "role": user["role"]},
     }
-    
-    
-    
 
 
 class RefreshRequest(BaseModel):
@@ -63,8 +58,13 @@ class RefreshRequest(BaseModel):
 
 @router.post("/refresh")
 async def refresh(body: RefreshRequest):
-    # Check 1: signature, expiry and type
-    username = decode_refresh_token(body.refresh_token)
+    # Check 1: signature, expiry and type (decode now returns the payload dict)
+    payload = decode_refresh_token(body.refresh_token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Refresh token expired or invalid")
+
+    username = payload.get("sub")
     if not username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Refresh token expired or invalid")
@@ -75,8 +75,9 @@ async def refresh(body: RefreshRequest):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                             detail="Refresh token does not match an active session")
 
-    access_token, access_expiry = create_access_token(user["username"])
-    new_refresh_token, _ = create_refresh_token(user["username"])
+    # Role comes from the database, so role changes apply on refresh
+    access_token, access_expiry = create_access_token(user["username"], user["role"])
+    new_refresh_token, _ = create_refresh_token(user["username"], user["role"])
     token_expiry = to_ist(access_expiry)
 
     update_tokens(user["id"], access_token, new_refresh_token, token_expiry)
@@ -88,8 +89,7 @@ async def refresh(body: RefreshRequest):
         "token_type": "bearer",
         "token_expiry": token_expiry,
     }
-    
-    
+
 
 @router.post("/logout")
 async def logout(request: Request):
@@ -102,11 +102,8 @@ async def logout(request: Request):
         "username": username,
         "logout_time": now_ist(),
     }
-    
-    
-    
-    
-    
+
+
 class ForceLogoutRequest(BaseModel):
     username: str
     password: str
@@ -133,3 +130,5 @@ async def force_logout(body: ForceLogoutRequest):
         "username": user["username"],
         "logout_time": now_ist(),
     }
+
+

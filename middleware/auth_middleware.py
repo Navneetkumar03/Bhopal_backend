@@ -27,7 +27,14 @@ class AuthMiddleware(BaseHTTPMiddleware):
             return JSONResponse(status_code=401, content={"detail": "Missing or invalid Authorization header"})
 
         # Check 2: signature, expiry and token type are valid
-        username = decode_access_token(token)
+        # decode_access_token now returns the full payload (dict) or None
+        payload = decode_access_token(token)
+        if not payload:
+            return JSONResponse(status_code=401, content={"detail": "Invalid or expired token"})
+
+        username = payload.get("sub")
+        role = payload.get("role")
+
         if not username:
             return JSONResponse(status_code=401, content={"detail": "Invalid or expired token"})
 
@@ -35,5 +42,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not await run_in_threadpool(is_session_valid, username, token):
             return JSONResponse(status_code=401, content={"detail": "Session is not active. Please log in again."})
 
-        request.state.username = username   # available in any route
+        # Available in any route via request.state
+        request.state.username = username
+        request.state.role = role
         return await call_next(request)
+
+
+
+

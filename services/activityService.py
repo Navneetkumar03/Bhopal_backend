@@ -7,12 +7,12 @@ from database.db import engine
 
 INSERT_ACTIVITY = text("""
     INSERT INTO "data".user_activity_log
-        (username, tehsil, village, khasra_no, detail_view, pop_feature,
+        (username, role, tehsil, village, khasra_no, detail_view, pop_feature,
          tab, activity, details, activity_time)
     VALUES
-        (:username, :tehsil, :village, :khasra_no, :detail_view, :pop_feature,
+        (:username, :role, :tehsil, :village, :khasra_no, :detail_view, :pop_feature,
          :tab, :activity, :details, :activity_time)
-    RETURNING id, username, tehsil, village, khasra_no, detail_view, pop_feature,
+    RETURNING id, username, role, tehsil, village, khasra_no, detail_view, pop_feature,
               tab, activity, details, activity_time
 """)
 

@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>{{ report_title }}</title>
+  <style>
+    /* ============================================================
+       FONTS — served locally so Playwright doesn't need network
+       ============================================================ */
+    @font-face {
+      font-family: 'Noto Sans Devanagari';
+      src: url('file://{{ fonts_dir }}/NotoSansDevanagari-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+
+    @font-face {
+      font-family: 'Noto Sans Devanagari';
+      src: url('file://{{ fonts_dir }}/NotoSansDevanagari-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+
+    /* ============================================================
+       RESET
+       ============================================================ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      font-family: 'Noto Sans Devanagari', 'Arial', sans-serif;
+      font-size: 10.5pt;
+      color: #1e293b;
+      line-height: 1.6;
+      background: #ffffff;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ============================================================
+       PAGE FRAME
+       We use Chrome's printToPDF margins, so we only style
+       the page-level padding here.
+       ============================================================ */
+    .page {
+      width: 100%;
+      padding: 0 8mm;
+      /* ← 8mm horizontal gutters */
+    }
+
+    .page+.page {
+      page-break-before: always;
+      break-before: page;
+    }
+
+    /* ============================================================
+       PAGE 1 — MAP COVER
+       ============================================================ */
+    .cover-page {
+      display: flex;
+      flex-direction: column;
+      min-height: 250mm;
+    }
+
+    .cover-header {
+      padding-bottom: 4mm;
+      margin-bottom: 2mm;
+      border-bottom: 1.5pt solid #e2e8f0;
+      text-align: center;
+    }
+
+    .cover-header h1 {
+      font-size: 18pt;
+      font-weight: 700;
+      color: #0f2744;
+      line-height: 1.25;
+      margin-bottom: 1.5mm;
+      letter-spacing: -0.2pt;
+    }
+
+    .cover-header .subtitle {
+      font-size: 10pt;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    /* ============================================================
+   FILTER META BAR — sits between header and map
+   ============================================================ */
+    .cover-meta {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+      column-gap: 8mm;
+      row-gap: 3mm;
+      padding: 1mm 0 1mm 0;
+      /* top 4mm, bottom 6mm */
+      margin-bottom: 2mm;
+      border-bottom: 0.5pt solid #e2e8f0;
+    }
+
+    .cover-meta-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 2mm;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .cover-meta-identifiers {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: 8mm;
+      grid-column: 1 / -1;
+      width: 100%;
+    }
+
+    .cover-meta-item.meta-group {
+      grid-column: 1;
+    }
+
+    .cover-meta-item.meta-ap {
+      grid-column: 2;
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .cover-meta-item.meta-ap .cover-meta-label {
+      flex: 0 0 auto;
+    }
+
+    .cover-meta-item.meta-ap .cover-meta-value {
+      flex: 0 1 auto;
+      max-width: calc(100% - 20mm);
+      text-align: right;
+    }
+
+    .cover-meta-label {
+      flex: 0 0 18mm;
+      font-size: 9pt;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.8pt;
+      line-height: 1.35;
+    }
+
+    .cover-meta-value {
+      flex: 1 1 auto;
+      font-size: 11pt;
+      font-weight: 600;
+      color: #0f2744;
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.45;
+    }
+
+    .cover-map {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .cover-map img {
+      width: 100%;
+      max-height: 225mm;
+      object-fit: contain;
+      border-radius: 4pt;
+      border: 0;
+    }
+
+    .map-image-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      border: 1.25pt solid #000000;
+      border-radius: 4pt;
+    }
+
+    .map-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 225mm;
+      object-fit: contain;
+      border-radius: 3pt;
+      border: 0;
+    }
+
+    .map-scale-badge {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: #ffffff;
+      padding: 6px 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      font-family: Arial, sans-serif;
+      font-size: 9pt;
+      color: #1e293b;
+      z-index: 10;
+    }
+
+
+    /* ============================================================
+       MARKER CARD
+       ============================================================ */
+    .marker-card {
+      page-break-inside: avoid;
+      break-inside: avoid;
+      padding-bottom: 6mm;
+      margin-bottom: 6mm;
+      border-bottom: 0.5pt dashed #cbd5e1;
+    }
+
+    .marker-card:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .marker-header {
+      display: flex;
+      align-items: center;
+      gap: 3mm;
+      padding: 2.5mm 3.5mm;
+      background: #f8fafc;
+      border-left: 2.5pt solid #0f2744;
+      border-radius: 3pt;
+      margin-bottom: 4mm;
+    }
+
+    .marker-dot {
+      width: 3mm;
+      height: 3mm;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .marker-index {
+      font-size: 9.5pt;
+      font-weight: 700;
+      color: #64748b;
+      background: #ffffff;
+      border: 0.5pt solid #e2e8f0;
+      border-radius: 2pt;
+      padding: 0.5mm 2mm;
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
+
+    .marker-objection-id {
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0f2744;
+      letter-spacing: -0.2pt;
+    }
+
+    .marker-category {
+      font-size: 9pt;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5pt;
+      margin-left: auto;
+      padding-right: 1mm;
+    }
+
+    /* ============================================================
+       FIELDS TABLE
+       ============================================================ */
+    .marker-fields {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 4mm;
+      table-layout: fixed;
+    }
+
+    .marker-fields .field-label {
+      width: 32mm;
+      font-size: 9.5pt;
+      color: #64748b;
+      font-weight: 600;
+      padding: 1.2mm 3mm 1.2mm 0;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .marker-fields .field-value {
+      font-size: 10.5pt;
+      color: #1e293b;
+      font-weight: 500;
+      padding: 1.2mm 0;
+      vertical-align: top;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      line-height: 1.6;
+    }
+
+    /* ============================================================
+       DESCRIPTION
+       ============================================================ */
+    .marker-description {
+      padding-top: 3mm;
+      border-top: 0.5pt solid #f1f5f9;
+    }
+
+    .desc-label {
+      font-size: 8.5pt;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 1pt;
+      margin-bottom: 2.5mm;
+    }
+
+    .desc-content {
+      font-size: 10.5pt;
+      line-height: 1.9;
+      color: #334155;
+    }
+
+    /* Paragraph */
+    .desc-content .desc-para {
+      margin-bottom: 2.5mm;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .desc-content .desc-para:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Section header: "1. Title:" */
+    .desc-content .desc-section {
+      display: flex;
+      gap: 2mm;
+      align-items: flex-start;
+      font-weight: 700;
+      color: #0f2744;
+      margin-top: 3.5mm;
+      margin-bottom: 1.5mm;
+      line-height: 1.9;
+    }
+
+    .desc-content .desc-section:first-child {
+      margin-top: 0;
+    }
+
+    .desc-content .desc-section-num {
+      flex-shrink: 0;
+      min-width: 5mm;
+    }
+
+    /* Bullet items */
+    .desc-content .desc-bullet {
+      display: flex;
+      gap: 2.5mm;
+      align-items: flex-start;
+      padding-left: 5mm;
+      margin-bottom: 1.5mm;
+      line-height: 1.9;
+      color: #334155;
+    }
+
+    .desc-content .desc-bullet-dot {
+      width: 1.5mm;
+      height: 1.5mm;
+      border-radius: 50%;
+      background: #94a3b8;
+      flex-shrink: 0;
+      margin-top: 2.6mm;
+    }
+
+    /* Numbered items (in प्रार्थना block etc.) */
+    .desc-content .desc-numbered {
+      display: flex;
+      gap: 2.5mm;
+      align-items: flex-start;
+      padding-left: 3mm;
+      margin-bottom: 1.5mm;
+      line-height: 1.9;
+      color: #334155;
+    }
+
+    .desc-content .desc-numbered-num {
+      flex-shrink: 0;
+      font-weight: 600;
+      color: #64748b;
+      min-width: 5mm;
+    }
+
+    /* Metadata lines: "आवेदक: ..." */
+    .desc-content .desc-meta {
+      margin-bottom: 2mm;
+      color: #475569;
+      line-height: 1.9;
+    }
+
+    .desc-content .desc-meta strong {
+      color: #0f2744;
+      font-weight: 600;
+      margin-right: 1.5mm;
+    }
+
+    /* ============================================================
+       FOOTER NOTE (only used if Chrome footer is disabled)
+       ============================================================ */
+    .pdf-footer-note {
+      font-size: 8.5pt;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 4mm;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================================================
+       PAGE 1 — MAP
+  ============================================================ -->
+  <section class="page cover-page">
+    <header class="cover-header">
+      <h1>{{ report_title }}</h1>
+      <p class="subtitle">{{ report_subtitle }}</p>
+    </header>
+
+    {# ---- Filter meta bar (only rendered if any filter is set) ---- #}
+    {% if tehsil or village or khasra or (apatti_group is not none and apatti_group|string|trim != '') or (apatti_no is not none and apatti_no|string|trim != '') %}
+    <div class="cover-meta">
+      {% if village %}
+      <div class="cover-meta-item">
+        <span class="cover-meta-label">Village:</span>
+        <span class="cover-meta-value">{{ village }}</span>
+      </div>
+      {% endif %}
+
+      {% if khasra %}
+      <div class="cover-meta-item">
+        <span class="cover-meta-label">Khasra No.:</span>
+        <span class="cover-meta-value">{{ khasra }}</span>
+      </div>
+      {% endif %}
+
+      {% if (apatti_group is not none and apatti_group|string|trim != '') or (apatti_no is not none and apatti_no|string|trim != '') %}
+      <div class="cover-meta-identifiers">
+    
+        <div class="cover-meta-item meta-group">
+          <span class="cover-meta-label">Group:</span>
+          <span class="cover-meta-value">{{ apatti_group or '<Null>' }}</span>
+        </div>
+      
+
+        
+        <div class="cover-meta-item meta-ap">
+          <span class="cover-meta-label">AP No.:</span>
+          <span class="cover-meta-value">{{ apatti_no or '<Null>' }}</span>
+        </div>
+        
+      </div>
+      {% endif %}
+
+    </div>
+    {% endif %}
+
+
+    <div class="cover-map">
+  <div class="map-image-wrapper">
+    <img src="{{ map_image }}" alt="Map" class="map-image" />
+
+    {% if map_scale %}
+    <div class="map-scale-badge">
+      1 : {{ map_scale | int }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+  </section>
+
+  <!-- ============================================================
+       PAGE 2+ — MARKER LIST
+  ============================================================ -->
+  <section class="page">
+    <div class="marker-list">
+      {% for marker in markers %}
+      <article class="marker-card">
+        <header class="marker-header">
+          <span class="marker-dot"
+            style="background-color: {{ category_colors.get(marker.object_type, '#6b7280') }};"></span>
+          <span class="marker-index">{{ loop.index }}</span>
+          <span class="marker-objection-id">Apatti No: {{ marker.objection_id or '—' }}</span>
+          <span class="marker-category">{{ marker.object_type }}</span>
+        </header>
+
+        <table class="marker-fields">
+          <tbody>
+            <tr>
+              <td class="field-label">Village</td>
+              <td class="field-value">{{ marker.village or '—' }}</td>
+            </tr>
+            <tr>
+              <td class="field-label">Khasra No.</td>
+              <td class="field-value">{{ marker.khasra_no or '—' }}</td>
+            </tr>
+            <tr>
+              <td class="field-label">Area</td>
+              <td class="field-value">{{ "%.4f"|format(marker.area) if marker.area else '—' }} </td>
+            </tr>
+            <tr>
+              <td class="field-label">Vargikaran</td>
+              <td class="field-value">{{ marker.vargikaran or '—' }}</td>
+            </tr>
+            <tr>
+              <td class="field-label">Upvargikaran</td>
+              <td class="field-value">{{ marker.upvargikar or '—' }}</td>
+            </tr>
+            {% if marker.apatti_gro and marker.apatti_gro != '<Null>' %}
+              <tr>
+                <td class="field-label">Apatti Group</td>
+                <td class="field-value">{{ marker.apatti_gro }}</td>
+              </tr>
+              {% endif %}
+              <tr>
+                <td class="field-label">Bhu Code</td>
+                <td class="field-value">{{ marker.bhucode or '—' }}</td>
+              </tr>
+              {% if marker.code %}
+              <tr>
+                <td class="field-label">Code</td>
+                <td class="field-value">{{ marker.code }}</td>
+              </tr>
+              {% endif %}
+              {% if marker.gov_kh %}
+              <tr>
+                <td class="field-label">Gov. Khasra</td>
+                <td class="field-value">{{ marker.gov_kh }}</td>
+              </tr>
+              {% endif %}
+          </tbody>
+        </table>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+</body>
+
+</html>
