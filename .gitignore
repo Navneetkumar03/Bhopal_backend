@@ -9,8 +9,8 @@ py-env/
 env/
 
 # Environment variables and secrets
-# .env
-# .env.*
+.env
+.env.*
 
 # Distribution and build files
 build/
