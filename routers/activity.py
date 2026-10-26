@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import BaseModel
 from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Query, Request, status
+from pydantic import BaseModel
 from core.time_utils import now_ist
-from services.activityService import save_activity
+from services.activityService import save_activity, get_activities
 
 
 router = APIRouter(prefix="/activity")
@@ -35,4 +36,31 @@ async def log_activity(body: ActivityRequest, request: Request):
     return {
         "status": "success",
         "activity_log": saved,
+    }
+
+
+@router.get("/history")
+async def activity_history(
+    request: Request,
+    username: Optional[str] = None,                 # optional: filter by one user
+    limit: int = Query(50, ge=1, le=500),           # rows per page
+    offset: int = Query(0, ge=0),                   # rows to skip
+):
+    # Only admins can view the activity log
+    if request.state.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="Only Admin is allowed")
+
+    try:
+        rows = get_activities(username, limit, offset)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Failed to fetch activity: {str(e)}")
+
+    return {
+        "status": "success",
+        "count": len(rows),
+        "limit": limit,
+        "offset": offset,
+        "activity_logs": rows,
     }
